@@ -50,3 +50,4 @@ rsconnect/
 
 # project specific
 2020_shapefiles/
+.vscode/
