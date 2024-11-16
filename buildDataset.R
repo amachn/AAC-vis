@@ -28,19 +28,73 @@ aac_dataset <- aac_dataset[as.numeric(gsub("\\D", "", aac_dataset$outDate)) >= 2
 # remove entries with no identifier or age metric ability
 aac_dataset <- subset(aac_dataset, !is.na(AID) & !is.na(inAge))
 
-# match duplicated entries to the correct intake/outcome pairing
-# method: 
-# - for each group of duplicates (for example, Champion A416147):
-#   - remove any entries that contain an outDateTime that occurs before an inDateTime
-#   - starting with the earliest inDateTime
-#     - find the entry with an outDateTime that is the least amount of time away
-#     - delete all other entries for that inDateTime
-#     - repeat for the next inDateTime until through all duplicate entries
-#   - TODO: case management for duplicate groups with an outcome w/o an intake due to restricted time frame\
-# finding duplicates:
-# aac_dataset %>% group_by(AID) %>% filter(n()>1) %>% ungroup()
-
 # set proper column typing
 aac_dataset$inDateTime <- mdy_hms(aac_dataset$inDateTime)
 aac_dataset$outDateTime <- mdy_hms(aac_dataset$outDateTime)
 aac_dataset$DOB <- mdy(aac_dataset$DOB)
+
+# match duplicated entries to the correct intake/outcome pairing
+filter_group <- function(group) {
+  entries <- nrow(group)
+  actual <- sqrt(entries)
+  
+  # this removes any contaminated entries that likely wouldn't be able to be 
+  # interpreted correctly without human intervention as a result of an outcome
+  # entry that is missing its intake entry due to the time frame restriction
+  if (actual != floor(actual)) return(data.frame())
+  
+  # actual = 2; keep = 1, 4
+  # actual = 3; keep = 1, 5, 9
+  # actual = 4; keep = 1, 6, 11, 16
+  # y = (a*(i-1)) + i
+  keep <- numeric(actual)
+  for (i in 1:actual) {
+    keep[i] <- (actual*(i-1)) + i
+  }
+  
+  return(group[keep, ])
+} 
+
+matched_data <- aac_dataset |>
+  group_by(AID) |> # internally group each AID
+  filter(n()>1) |> # keep only duplicates in this pipe
+  arrange(AID, inDateTime, outDateTime) |> # sort by these cols, in this order
+  group_modify( # apply function that filters out bad duplicates
+    ~ filter_group(.x)
+  ) |>
+  ungroup() # return to standard form w/o groups
+  
+# convert ages to usable decimal format
+conv_age <- function(ages) {
+  ages <- sapply(ages, strsplit, " ")
+  ages <- sapply(ages, function(age){
+    if (length(age) != 2) return (-1)
+    
+    age_num <- as.numeric(age[[1]])
+    age_scope <- age[[2]]
+    
+    return (
+      switch(
+        age_scope,
+        "years" = age_num,
+        "months" = age_num / 12,
+        "weeks" = age_num / 52.143,
+        "days" = age_num / 365,
+        -1
+      )
+    )
+  })
+  
+  return(ages)
+}
+
+# perform all modifications on primary dataset
+aac_dataset <- aac_dataset |>
+  group_by(AID) |>
+  filter(n()==1) |> # keep only unique values in this pipe
+  ungroup() |>
+  bind_rows(matched_data) |> # append all matched duplicate entries to main data
+  arrange(AID) |> # sort after having added duplicates to bottom of dataframe
+  mutate(across(c(inAge, outAge), conv_age)) |> # convert ages to dec. format
+  mutate(across(c(inAge, outAge), as.numeric)) |> # ensure columns are typed
+  mutate(across(c(inAge, outAge), ~ round(.x, 3)))
