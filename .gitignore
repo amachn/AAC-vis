@@ -49,5 +49,6 @@ po/*~
 rsconnect/
 
 # project specific
-2020_shapefiles/
+*shapefiles/
 .vscode/
+*.RData
