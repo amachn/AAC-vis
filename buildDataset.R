@@ -84,6 +84,7 @@ conv_age <- function(ages) {
       )
     )
   })
+  ages <- sapply(ages, round, digits=3)
   
   return(ages)
 }
@@ -95,6 +96,4 @@ aac_dataset <- aac_dataset |>
   ungroup() |>
   bind_rows(matched_data) |> # append all matched duplicate entries to main data
   arrange(AID) |> # sort after having added duplicates to bottom of dataframe
-  mutate(across(c(inAge, outAge), conv_age)) |> # convert ages to dec. format
-  mutate(across(c(inAge, outAge), as.numeric)) |> # ensure columns are typed
-  mutate(across(c(inAge, outAge), ~ round(.x, 3)))
+  mutate(across(c(inAge, outAge), conv_age)) # convert ages to decimal format
