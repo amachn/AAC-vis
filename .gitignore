@@ -52,3 +52,4 @@ rsconnect/
 *shapefiles/
 .vscode/
 *.RData
+.env
