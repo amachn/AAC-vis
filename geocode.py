@@ -45,7 +45,7 @@ class Geocoder:
         )
         logging.info(f"Running {count} queries.")   
 
-    def _geocode(self, address: str) -> tuple[int, int] | int:
+    def _geocode(self, address: str) -> tuple[float, float] | int:
         req = get(f"https://geocode.maps.co/search?q={address}&api_key={self.key}")
 
         if req.status_code == 401:
