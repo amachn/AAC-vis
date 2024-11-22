@@ -19,8 +19,11 @@ class Geocoder:
         self.raw_df = pd.read_csv("dat/raw_addrs.csv")
         self.out_df = pd.read_csv("dat/geocoded_addrs.csv")
 
-    def _geocode(self, address: str) -> tuple[int, int] | None:
+    def _geocode(self, address: str) -> tuple[int, int] | int:
         req = get(f"https://geocode.maps.co/search?q={address}&api_key={self.key}")
+
+        if req.status_code == 429:
+            return -1
 
         if len(req) != 0: # successful query for coordinates
             data = req.json()[0]
@@ -44,6 +47,10 @@ class Geocoder:
                 coords = self._geocode(addr)
             else:
                 coords = (-1, -1)
+
+            if coords == -1: # we've hit the request limit, end geocoding
+                print(f"Request limit exceeded! Prematurely terminating script @ idx {idx}")
+                break
 
             vals: list[int | str] = row.values[0].tolist()
             vals.extend(coords)            
