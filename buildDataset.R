@@ -101,3 +101,20 @@ aac_dataset <- aac_dataset |>
   bind_rows(matched_data) |> # append all matched duplicate entries to main data
   arrange(AID) |> # sort after having added duplicates to bottom of dataframe
   mutate(across(c(inAge, outAge), conv_age)) # convert ages to decimal format
+
+# create data subset for geocoding, if it doesn't already exist
+if (!file.exists("dat/raw_addrs.csv")) {
+  geo_subset <- aac_dataset %>%
+    mutate(idx = row_number()) %>%
+    select(idx, AID, address)
+  write.csv(geo_subset, "dat/raw_addrs.csv", row.names = FALSE)
+}
+
+# create csv file for geocoded results, if it doesn't already exist
+if (!file.exists("dat/geocoded_addrs.csv")) {
+  base_df <- data.frame(
+    idx = 0, AID = 0, address = "AAC",
+    lat = 30.2521117, lon = -97.6872072
+  )
+  write.csv(base_df, "dat/geocoded_addrs.csv", row.names = FALSE)
+}
