@@ -56,7 +56,10 @@ class Geocoder:
 
         if len(req.json()) != 0: # successful query for coordinates
             data = req.json()[0]
-            return (data['lat'], data['lon'])
+            return (
+                round(float(data['lat']), 6), 
+                round(float(data['lon']), 6)
+            )
         else: # if len is 0, then the request was bad and yielded no coordinates
             return (-1, -1)
 
