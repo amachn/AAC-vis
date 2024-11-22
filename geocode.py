@@ -39,9 +39,10 @@ class Geocoder:
 
     def run(self, count: int) -> None:
         start_idx = int(self.out_df.tail(1)["idx"].values[0]) + 1 
+        end_idx = start_idx + count
         new_rows = [] 
 
-        for idx in range(start_idx, start_idx + count):
+        for idx in range(start_idx, end_idx):
             row = self.raw_df.query("idx == @idx") # find row with matching idx
             base_addr = row["address"].values[0]
 
@@ -53,6 +54,8 @@ class Geocoder:
                 coords = self._geocode(addr)
             else:
                 coords = (-1, -1)
+
+            print(f"{start_idx+(idx-1)}/{end_idx-1} ({idx-start_idx+1}) | {row["AID"].values[0]} - {coords}")
 
             if coords == -1: # we've hit the request limit, end geocoding
                 print(f"Request limit exceeded! Prematurely terminating script @ idx {idx}")
