@@ -6,7 +6,7 @@ from time import sleep
 import pandas as pd
 import re
 
-# TODO: logging to console each request result
+
 class Geocoder:
     key: str | None
     raw_df: pd.DataFrame
@@ -25,10 +25,13 @@ class Geocoder:
     def _geocode(self, address: str) -> tuple[int, int] | int:
         req = get(f"https://geocode.maps.co/search?q={address}&api_key={self.key}")
 
+        if req.status_code == 401:
+            return -2
+
         if req.status_code == 429:
             return -1
 
-        if len(req) != 0: # successful query for coordinates
+        if len(req.json()) != 0: # successful query for coordinates
             data = req.json()[0]
             return (data['lat'], data['lon'])
         else: # if len is 0, then the request was bad and yielded no coordinates
@@ -53,6 +56,9 @@ class Geocoder:
 
             if coords == -1: # we've hit the request limit, end geocoding
                 print(f"Request limit exceeded! Prematurely terminating script @ idx {idx}")
+                break
+            elif coords == -2: # missing API key in /.env
+                print("No API key found!")
                 break
 
             vals: list[int | str] = row.values[0].tolist()
@@ -83,7 +89,9 @@ if __name__ == "__main__":
             count = input("How many addresses should be geocoded [default = 1000/day, max = 5000/day]? ")
 
             try:
-                if int(count) < 1 or int(count) > 5000:
+                if count in ['', ' ']:
+                    count = 1000
+                elif int(count) < 1 or int(count) > 5000:
                     raise ValueError("Number not in range.")
             except ValueError:
                 print("Please enter a number between 1 and 5000.")
@@ -92,16 +100,17 @@ if __name__ == "__main__":
                 count = int(count)
 
         if not isinstance(wait, int) and not isinstance(wait, float):
-            wait = input("How long should the script wait between requests [default=1s]? ")
+            wait = input("How long should the script wait between requests [default=1.2s]? ")
 
             try:
-                wait = float(wait)
+                if wait in ['', ' ']:
+                    wait = 1.2
+                else:
+                    wait = float(wait)
             except ValueError:
                 print("Please enter a number only.")
                 continue
 
-        break
-
-        
+        break  
 
     geocoder.run(count)
