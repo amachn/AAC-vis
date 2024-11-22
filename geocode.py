@@ -87,7 +87,7 @@ class Geocoder:
             else:
                 coords = (-1, -1)
 
-            print(f"{start_idx+(idx-1)}/{end_idx-1} ({idx-start_idx+1}) | {row["AID"].values[0]} - {coords}")
+            print(f"{(idx)}/{end_idx-1} ({idx-start_idx+1}) | {row["AID"].values[0]} - {coords}")
 
             if coords == -1: # we've hit the request limit, end geocoding
                 print(f"Request limit exceeded! Prematurely terminating script @ idx {idx}")
