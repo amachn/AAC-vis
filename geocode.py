@@ -6,7 +6,7 @@ from time import sleep
 import pandas as pd
 import re
 
-
+# TODO: logging to console each request result
 class Geocoder:
     key: str | None
     raw_df: pd.DataFrame
@@ -18,6 +18,9 @@ class Geocoder:
 
         self.raw_df = pd.read_csv("dat/raw_addrs.csv")
         self.out_df = pd.read_csv("dat/geocoded_addrs.csv")
+
+    def _log_run(self, *args) -> ...:
+        pass # TODO: log date/time when geocoder was last run with count
 
     def _geocode(self, address: str) -> tuple[int, int] | int:
         req = get(f"https://geocode.maps.co/search?q={address}&api_key={self.key}")
@@ -73,16 +76,32 @@ class Geocoder:
 if __name__ == "__main__":
     geocoder = Geocoder()
 
+    count = None
+    wait = None
     while True:
-        count = input("How many addresses should be geocoded (max: 5000/day)? ")
+        if not isinstance(count, int):
+            count = input("How many addresses should be geocoded [default = 1000/day, max = 5000/day]? ")
 
-        try:
-            if int(count) < 1 or int(count) > 5000:
-                raise ValueError("Number not in range.")
-        except ValueError:
-            print("Please enter a number between 1 and 5000.")
-        else:
-            count = int(count)
-            break
+            try:
+                if int(count) < 1 or int(count) > 5000:
+                    raise ValueError("Number not in range.")
+            except ValueError:
+                print("Please enter a number between 1 and 5000.")
+                continue
+            else:
+                count = int(count)
+
+        if not isinstance(wait, int) and not isinstance(wait, float):
+            wait = input("How long should the script wait between requests [default=1s]? ")
+
+            try:
+                wait = float(wait)
+            except ValueError:
+                print("Please enter a number only.")
+                continue
+
+        break
+
+        
 
     geocoder.run(count)
