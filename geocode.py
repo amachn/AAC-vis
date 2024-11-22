@@ -1,8 +1,10 @@
 from csv import QUOTE_NONNUMERIC
+from datetime import datetime
 from dotenv import load_dotenv
 from os import getenv
 from requests import get
 from time import sleep
+import logging
 import pandas as pd
 import re
 
@@ -19,8 +21,29 @@ class Geocoder:
         self.raw_df = pd.read_csv("dat/raw_addrs.csv")
         self.out_df = pd.read_csv("dat/geocoded_addrs.csv")
 
-    def _log_run(self, *args) -> ...:
-        pass # TODO: log date/time when geocoder was last run with count
+    def _check_max(self) -> bool:
+        current_date = datetime.today().strftime("%m-%d-%y")
+
+        with open("./run-list.log") as logfile:
+            logfile = logfile.readlines()
+        
+        queries = 0
+        for line in logfile:
+            if current_date in line:
+                queries += int(re.search("\\d{1,}", line).group(0))
+
+        if queries >= 5000:
+            return False
+        else:
+            return True
+
+    def _log_run(self, count: int) -> None:
+        logging.basicConfig(
+            filename="./run-list.log", filemode='a',
+            format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
+            datefmt="%m-%d-%Y", level=logging.INFO
+        )
+        logging.info(f"Running {count} queries.")   
 
     def _geocode(self, address: str) -> tuple[int, int] | int:
         req = get(f"https://geocode.maps.co/search?q={address}&api_key={self.key}")
@@ -38,6 +61,12 @@ class Geocoder:
             return (-1, -1)
 
     def run(self, count: int) -> None:
+        if not self._check_max():
+            print("Daily query limit reached!")
+            return
+
+        self._log_run(count)
+
         start_idx = int(self.out_df.tail(1)["idx"].values[0]) + 1 
         end_idx = start_idx + count
         new_rows = [] 
