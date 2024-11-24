@@ -11,6 +11,8 @@ import re
 
 class Geocoder:
     key: str | None
+    count: int | None
+    wait: float | None
     raw_df: pd.DataFrame
     out_df: pd.DataFrame
 
@@ -18,8 +20,50 @@ class Geocoder:
         load_dotenv()
         self.key = getenv("GEOCODE_API_KEY")
 
+        self.count = None
+        self.wait = None
+
         self.raw_df = pd.read_csv("dat/raw_addrs.csv")
         self.out_df = pd.read_csv("dat/geocoded_addrs.csv")
+
+    @staticmethod
+    def _get_var( 
+        prompt: str, 
+        default: float, 
+        vRange: range,
+        exc_msg: str
+    ) -> float:
+        var = None
+
+        while not isinstance(var, float) or var not in vRange:
+            var = input(prompt)
+
+            try:
+                if var in ['', ' ']:
+                    var = default
+                else:
+                    var = float(var)
+            except ValueError:
+                var = None
+                print(exc_msg)
+            else:
+                print(exc_msg) if var not in vRange else None
+
+        return var
+
+    def _run_startup_tasks(self) -> None:
+        self.count = int(
+            self._get_var(
+                "How many addresses should be geocoded [default = 1000/day, max = 5000/day]? ", 1000,
+                range(1, 5001), "Please enter a number between 1 and 5000."
+            )
+        )
+
+        self.wait = self._get_var(
+            "How long should the script wait between requests [default=1.2s, max=30s]? ", 1.2,
+            range(1, 30), "Please enter a number between 1 and 30."
+        )
+
 
     def _check_max(self) -> bool:
         current_date = datetime.today().strftime("%m-%d-%y")
@@ -63,15 +107,16 @@ class Geocoder:
         else: # if len is 0, then the request was bad and yielded no coordinates
             return (-1, -1)
 
-    def run(self, count: int) -> None:
+    def run(self) -> None:
         if not self._check_max():
             print("Daily query limit reached!")
             return
 
-        self._log_run(count)
+        self._run_startup_tasks()
+        self._log_run(self.count)
 
         start_idx = int(self.out_df.tail(1)["idx"].values[0]) + 1 
-        end_idx = start_idx + count
+        end_idx = start_idx + self.count
         new_rows = [] 
 
         for idx in range(start_idx, end_idx):
@@ -101,7 +146,7 @@ class Geocoder:
 
             new_rows.append(vals)
 
-            sleep(1.2) # avoid hitting API ratelimit of 1req/s
+            sleep(self.wait) # avoid hitting API ratelimit of 1req/s
 
         df_extension = pd.DataFrame(new_rows, columns=self.out_df.columns)
         df_extension.to_csv("dat/geocoded_addrs.csv", mode='a',
@@ -116,36 +161,4 @@ class Geocoder:
 
 if __name__ == "__main__":
     geocoder = Geocoder()
-
-    count = None
-    wait = None
-    while True:
-        if not isinstance(count, int):
-            count = input("How many addresses should be geocoded [default = 1000/day, max = 5000/day]? ")
-
-            try:
-                if count in ['', ' ']:
-                    count = 1000
-                elif int(count) < 1 or int(count) > 5000:
-                    raise ValueError("Number not in range.")
-            except ValueError:
-                print("Please enter a number between 1 and 5000.")
-                continue
-            else:
-                count = int(count)
-
-        if not isinstance(wait, int) and not isinstance(wait, float):
-            wait = input("How long should the script wait between requests [default=1.2s]? ")
-
-            try:
-                if wait in ['', ' ']:
-                    wait = 1.2
-                else:
-                    wait = float(wait)
-            except ValueError:
-                print("Please enter a number only.")
-                continue
-
-        break  
-
-    geocoder.run(count)
+    geocoder.run()
