@@ -5,6 +5,7 @@ from os import getenv
 from requests import get
 from time import sleep
 import logging
+import numpy as np
 import pandas as pd
 import re
 
@@ -30,7 +31,7 @@ class Geocoder:
     def _get_var( 
         prompt: str, 
         default: float, 
-        vRange: range,
+        vRange: range | np.ndarray,
         exc_msg: str
     ) -> float:
         var = None
@@ -61,7 +62,7 @@ class Geocoder:
 
         self.wait = self._get_var(
             "How long should the script wait between requests [default=1.2s, max=30s]? ", 1.2,
-            range(1, 30), "Please enter a number between 1 and 30."
+            np.linspace(1, 30, num=2901), "Please enter a number between 1 and 30."
         )
 
 
