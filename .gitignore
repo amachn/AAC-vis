@@ -53,3 +53,4 @@ rsconnect/
 .vscode/
 *.RData
 .env
+*.log
