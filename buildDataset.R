@@ -102,6 +102,8 @@ aac_dataset <- aac_dataset |>
   arrange(AID) |> # sort after having added duplicates to bottom of dataframe
   mutate(across(c(inAge, outAge), conv_age)) # convert ages to decimal format
 
+# - geocoding -
+
 # create data subset for geocoding, if it doesn't already exist
 if (!file.exists("dat/raw_addrs.csv")) {
   geo_subset <- aac_dataset %>%
