@@ -93,10 +93,12 @@ class Geocoder:
     def _geocode(self, address: str) -> tuple[float, float] | int:
         req = get(f"https://geocode.maps.co/search?q={address}&api_key={self.key}")
 
-        if req.status_code == 401:
-            return -2
+        if req.status_code == 401: # missing API key in /.env
+            print("No API key found!")
+            return -1
 
-        if req.status_code == 429:
+        if req.status_code == 429: # request limit hit
+            print(f"Request limit exceeded! Prematurely terminating script @ idx {idx}")
             return -1
 
         if len(req.json()) != 0: # successful query for coordinates
@@ -135,11 +137,7 @@ class Geocoder:
 
             print(f"{(idx)}/{end_idx-1} ({idx-start_idx+1}) | {row["AID"].values[0]} - {coords}")
 
-            if coords == -1: # we've hit the request limit, end geocoding
-                print(f"Request limit exceeded! Prematurely terminating script @ idx {idx}")
-                break
-            elif coords == -2: # missing API key in /.env
-                print("No API key found!")
+            if coords == -1:
                 break
 
             vals: list[int | str] = row.values[0].tolist()
@@ -153,6 +151,66 @@ class Geocoder:
         df_extension.to_csv("dat/geocoded_addrs.csv", mode='a',
                             index=False, header=False,
                             quoting=QUOTE_NONNUMERIC)
+
+
+class App:
+    _queries: int
+    _delay: float
+    _key: str | None
+    geocoder: Geocoder | None
+
+    def __init__(self) -> None:
+        self._queries = 1000
+        self._delay = 1.2
+        self._key = self._check_key()
+        self.geocoder = None
+
+    @staticmethod
+    def _check_key() -> str | None:
+        load_dotenv()
+        key = getenv("GEOCODE_API_KEY")
+        req = get(f"https://geocode.maps.co/search?q=Austin+TX&api_key={key}")
+
+        if req.status_code == 200:
+            return getenv("GEOCODE_API_KEY")
+        else:
+            return None
+
+    def _fetch_option(self) -> str:
+        print("options:")
+        print("\t1) run the geocoder")
+        print(f"\t2) set the amount of queries to send ~ current: {self.queries}")
+        print(f"\t3) set the delay between each query ~ current: {self.delay}")
+        print(f"\t4) refresh API key variable ~ current: {'valid' if self._key else 'invalid'}")
+        print("\t0) exit")
+        return input("select one: ")
+
+    def _fetch(self) -> ...:
+        pass
+
+    def run(self) -> ...:
+        exit_cond = False
+        print("geocoder\n--------\n")
+        while not exit_cond:
+            try:
+                opt = int(self._fetch_option())
+            except ValueError:
+                print("input must be a numeric value, please try again!")
+                continue
+
+            match opt:
+                case 0:
+                    pass
+                case 1:
+                    pass
+                case 2:
+                    pass
+                case 3:
+                    pass
+                case 4:
+                    pass
+                case _:
+                    pass
 
 
 # TO RUN THIS SCRIPT:
