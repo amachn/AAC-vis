@@ -100,7 +100,10 @@ aac_dataset <- aac_dataset |>
   ungroup() |>
   bind_rows(matched_data) |> # append all matched duplicate entries to main data
   arrange(AID) |> # sort after having added duplicates to bottom of dataframe
-  mutate(across(c(inAge, outAge), conv_age)) # convert ages to decimal format
+  mutate(across(c(inAge, outAge), conv_age)) |> # convert ages to decimal format
+  filter(inAge != -1 & outAge != -1) # remove invalidated entries
+
+save(aac_dataset, file = "dat/aac_dataset.rda")
 
 # - geocoding -
 
