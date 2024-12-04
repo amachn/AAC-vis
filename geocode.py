@@ -55,7 +55,7 @@ class Geocoder:
     def _run_startup_tasks(self) -> None:
         self.count = int(
             self._get_var(
-                "How many addresses should be geocoded [default = 1000/day, max = 5000/day]? ", 1000,
+                "How many addresses should be geocoded [default = 1000/day, max = 5000/day]? ", 1000.0,
                 range(1, 5001), "Please enter a number between 1 and 5000."
             )
         )
