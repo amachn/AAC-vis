@@ -1,9 +1,36 @@
 library(bslib)
-library(DT)
+library(DT) # data explorer
+library(ggvis) # visualizations
+library(leaflet) # interactive map
 library(lubridate)
 library(shiny)
 
 load("dat/aac_dataset.rda")
+
+get_plot <- function(input) {
+  switch(
+    input$plot,
+    # - line -
+    # - scatter -
+    # - bar -
+    "Most Common Names" = {
+      name_tbl <- head(
+        sort(table(aac_dataset$name), decreasing = TRUE),
+        input$nameCount + 1
+      )[-1]
+
+      name_tbl |> as.data.frame() |> 
+        setNames(c("name", "count")) |> 
+        ggvis(~name, ~count) #|>
+        #mark_rect(props(y2 = 0, width = band())) |>
+        
+
+      #aac_dataset |> dplyr::count(name) |> dplyr::top_n(10) |> ggvis
+    },
+    # - pie -
+    # - box -
+  )
+}
 
 ui <- navbarPage(
   title = "Austin Animal Center Data",
@@ -62,7 +89,7 @@ ui <- navbarPage(
           h3("Plot Type"),
           radioButtons(
             "plotType", "Plot Type",
-            choices = c("Line", "Scatter", "Pie", "Box"),
+            choices = c("Line", "Scatter", "Bar", "Pie", "Box"),
             selected = character(0)
           ),
           conditionalPanel(
@@ -72,6 +99,12 @@ ui <- navbarPage(
               choices = NULL,
               selected = character(0)
             )
+          )
+        ),
+        conditionalPanel(
+          "input.plot",
+          wellPanel(
+            h3("Plot Options"),
           )
         )
       ),
@@ -123,18 +156,20 @@ server <- function(input, output, session) {
       input$plotType,
       "Line" = c("X over Time", "placeholder"),
       "Scatter" = c("placeholder"),
+      "Bar" = c("Most Common Names", "placeholder"),
       "Pie" = c("placeholder"),
       "Box" = c("placeholder")
     )
 
     updateSelectInput(
       session, inputId = "plot",
-      choices = plots
+      choices = plots, selected = character(0)
     )
   })
 
   output$plot <- renderPlot({ # resizable plots? ggvis? ggplot2? standard plots?
-    plot(1:10, 1:10, type = "l")
+    #if (is.null(input$plot)) ggvis() else get_plot(input)
+    ggvis()
   })
 
   # - models -
