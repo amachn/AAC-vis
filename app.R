@@ -7,6 +7,12 @@ library(shiny)
 
 load("dat/aac_dataset.rda")
 
+default_theme <- theme(
+  plot.background = element_rect(fill = "grey", color = "black"),
+  axis.text = element_text(size = 16, color = "white"),
+  axis.title = element_text(size = 20, face = "bold")
+)
+
 get_plot <- function(input) {
   switch(
     input$plotName,
@@ -23,12 +29,11 @@ get_plot <- function(input) {
 
       name_tbl |>
         as.data.frame() |>
-        setNames(c("name", "count")) |>
-        ggplot(aes(name, count)) +
-        geom_col() +
-        theme(
-          plot.background = element_rect(fill = "grey")
-        )
+        setNames(c("Name", "Count")) |>
+        ggplot(aes(Name, Count)) +
+        ggtitle("Most Common Names") +
+        default_theme +
+        geom_col()
     },
 
     # - pie -
@@ -37,7 +42,7 @@ get_plot <- function(input) {
 
     # - default -
     ggplot() +
-      theme(plot.background = element_rect(fill = "grey"))
+      default_theme
   )
 }
 
@@ -79,6 +84,13 @@ ui <- navbarPage(
           "outType", "Outcome Type",
           choices = c("All types" = "", sort(unique(aac_dataset$outType))),
           multiple = TRUE
+        )
+      ),
+      column(4, # column selector
+        selectInput(
+          "columns", "Columns",
+          choices = c("All columns" = "", colnames(aac_dataset)),
+          selected = "", multiple = TRUE
         )
       )
     ),
@@ -160,6 +172,8 @@ server <- function(input, output, session) {
       is.null(input$inType) | inType %in% input$inType,
       is.null(input$outType) | outType %in% input$outType
     )
+    
+    if (!is.null(input$columns)) df <- df[, input$columns]
 
     return(df)
   })
