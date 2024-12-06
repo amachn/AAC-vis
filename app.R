@@ -1,6 +1,6 @@
 library(bslib)
 library(DT) # data explorer
-library(ggvis) # visualizations
+library(ggplot2) # visualizations
 library(leaflet) # interactive map
 library(lubridate)
 library(shiny)
@@ -9,9 +9,11 @@ load("dat/aac_dataset.rda")
 
 get_plot <- function(input) {
   switch(
-    input$plot,
+    input$plotName,
     # - line -
+
     # - scatter -
+
     # - bar -
     "Most Common Names" = {
       name_tbl <- head(
@@ -19,16 +21,23 @@ get_plot <- function(input) {
         input$nameCount + 1
       )[-1]
 
-      name_tbl |> as.data.frame() |> 
-        setNames(c("name", "count")) |> 
-        ggvis(~name, ~count) #|>
-        #mark_rect(props(y2 = 0, width = band())) |>
-        
-
-      #aac_dataset |> dplyr::count(name) |> dplyr::top_n(10) |> ggvis
+      name_tbl |>
+        as.data.frame() |>
+        setNames(c("name", "count")) |>
+        ggplot(aes(name, count)) +
+        geom_col() +
+        theme(
+          plot.background = element_rect(fill = "grey")
+        )
     },
+
     # - pie -
+
     # - box -
+
+    # - default -
+    ggplot() +
+      theme(plot.background = element_rect(fill = "grey"))
   )
 }
 
@@ -95,16 +104,23 @@ ui <- navbarPage(
           conditionalPanel(
             "input.plotType",
             selectInput(
-              "plot", "Select Plot",
+              "plotName", "Select Plot",
               choices = NULL,
               selected = character(0)
             )
           )
         ),
         conditionalPanel(
-          "input.plot",
+          "input.plotName",
           wellPanel(
             h3("Plot Options"),
+            conditionalPanel(
+              "input.plotName == 'Most Common Names'",
+              sliderInput(
+                "nameCount", "How many names should be charted?",
+                min = 3, max = 25, value = 10
+              )
+            )
           )
         )
       ),
@@ -162,14 +178,13 @@ server <- function(input, output, session) {
     )
 
     updateSelectInput(
-      session, inputId = "plot",
+      session, inputId = "plotName",
       choices = plots, selected = character(0)
     )
   })
 
-  output$plot <- renderPlot({ # resizable plots? ggvis? ggplot2? standard plots?
-    #if (is.null(input$plot)) ggvis() else get_plot(input)
-    ggvis()
+  output$plot <- renderPlot({
+    get_plot(input)
   })
 
   # - models -
