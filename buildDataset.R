@@ -21,6 +21,20 @@ colnames(aac_dataset) <- c(
   "outSubtype", "outSex", "outAge"
 )
 
+# add lat/lon columns
+aac_dataset$lat <- NA
+aac_dataset$lon <- NA
+
+# more sensible column organization (important for data exploration)
+aac_dataset <- aac_dataset[, c(
+  "AID", "name", "animalType", "breed",
+  "color", "DOB", "inDateTime", "inDate",
+  "address", "lat", "lon", "inType",
+  "inCond", "inSex", "inAge", "outDateTime",
+  "outDate", "outType", "outSubtype", "outSex",
+  "outAge"
+)]
+
 # restrict to time frame of last 5 years
 aac_dataset <- aac_dataset[
   as.numeric(gsub("\\D", "", aac_dataset$inDate)) >= 2019,
@@ -93,6 +107,12 @@ conv_age <- function(ages) {
   return(ages)
 }
 
+# add lat/lon (must run geocoding section below + .py script first)
+geocoded <- read.csv("dat/geocoded_addrs.csv")[-1, ]
+fill_inc <- rep(-1, nrow(aac_dataset) - length(geocoded$lat))
+aac_dataset$lat <- c(geocoded$lat, fill_inc)
+aac_dataset$lon <- c(geocoded$lon, fill_inc)
+
 # perform all modifications on primary dataset
 aac_dataset <- aac_dataset |>
   group_by(AID) |>
@@ -101,7 +121,8 @@ aac_dataset <- aac_dataset |>
   bind_rows(matched_data) |> # append all matched duplicate entries to main data
   arrange(AID) |> # sort after having added duplicates to bottom of dataframe
   mutate(across(c(inAge, outAge), conv_age)) |> # convert ages to decimal format
-  filter(inAge != -1 & outAge != -1) # remove invalidated entries
+  filter(inAge != -1 & outAge != -1) |> # remove invalidated entries
+  filter(lat != -1 & lon != -1) # remove bad/incomplete address entries
 
 save(aac_dataset, file = "dat/aac_dataset.rda")
 
