@@ -1,4 +1,5 @@
 library(bslib)
+library(dplyr)
 library(DT) # data explorer
 library(ggplot2) # visualizations
 library(leaflet) # interactive map
@@ -12,6 +13,17 @@ default_theme <- theme(
   axis.text = element_text(size = 16, color = "white"),
   axis.title = element_text(size = 20, face = "bold")
 )
+
+aac_dataset_full <- aac_dataset
+aac_dataset_min <- aac_dataset |> filter(lat != -1 & lon != -1)
+
+toggle <- function(switch) {
+  if (switch) {
+    aac_dataset <<- aac_dataset_full
+  } else {
+    aac_dataset <<- aac_dataset_min
+  }
+}
 
 get_plot <- function(input) {
   switch(
@@ -144,6 +156,16 @@ ui <- navbarPage(
 
   tabPanel(
     title = "Models"
+  ),
+
+  tabPanel(
+    title = "Settings",
+    wellPanel(
+      h3("Dataset Settings"),
+      input_switch(
+        "geo_switch", "Allow data with missing geolocation info?", value = TRUE
+      ),
+    )
   )
 )
 
@@ -164,7 +186,7 @@ server <- function(input, output, session) {
   })
 
   output$aac_dataset <- renderDT({
-    df <- aac_dataset |> dplyr::filter(
+    df <- aac_dataset |> filter(
       inAge %in% input$age[1]:input$age[2],
       outAge %in% input$age[1]:input$age[2],
       input$animalType == "" | animalType %in% input$animalType,
@@ -176,7 +198,12 @@ server <- function(input, output, session) {
     if (!is.null(input$columns)) df <- df[, input$columns]
 
     return(df)
-  })
+  }) |>
+    bindEvent(
+      input$age, input$animalType, input$breed,
+      input$inType, input$outType, input$columns,
+      input$geo_switch
+    )
 
   # - interactive map -
 
@@ -202,6 +229,14 @@ server <- function(input, output, session) {
   })
 
   # - models -
+
+  # - settings -
+  observe({
+    toggle(input$geo_switch)
+    output$plot <- renderPlot({
+      get_plot(input)
+    })
+  }) |> bindEvent(input$geo_switch)
 }
 
 shinyApp(ui = ui, server = server)
