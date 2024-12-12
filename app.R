@@ -17,13 +17,13 @@ default_theme <- theme(
 )
 
 aac_dataset_full <- aac_dataset
-aac_dataset_min <- aac_dataset |> filter(lat != -1 & lon != -1)
+aac_dataset_geo <- aac_dataset |> filter(lat != -1 & lon != -1)
 
 toggle <- function(switch) {
   if (switch) {
     aac_dataset <<- aac_dataset_full
   } else {
-    aac_dataset <<- aac_dataset_min
+    aac_dataset <<- aac_dataset_geo
   }
 }
 
