@@ -178,29 +178,7 @@ ui <- navbarPage(
 
   tabPanel(
     title = "Interactive Map",
-
-    tags$style(
-      "
-      #controls {
-        background-color: #FFFFFF;
-        padding: 20px;
-        opacity: 0.65;
-        transition: opacity 250ms 500ms;
-      }
-      #controls:hover {
-        opacity: 0.9;
-      }
-      "
-    ),
-
-    leafletOutput("map", width = "100%", height = "93vh"),
-    absolutePanel(
-      id = "controls", class = "panel panel-default", fixed = TRUE,
-      draggable = TRUE, top = 106, left = "auto", right = 50,
-      bottom = "auto", width = "auto", height = "auto",
-
-      h2("Map Options"), 
-    )
+    leafletOutput("map", width = "100%", height = "93vh")
   ),
 
   tabPanel(
@@ -295,7 +273,7 @@ ui <- navbarPage(
       h3("Dataset Settings"),
       input_switch(
         "geo_switch", "Allow data with missing geolocation info?", value = TRUE
-      ),
+      )
     )
   )
 )
@@ -338,8 +316,32 @@ server <- function(input, output, session) {
 
   # - interactive map -
   output$map <- renderLeaflet({
-    leaflet() |>
-      addTiles() |>
+    leaflet(aac_dataset_geo) |>
+      addTiles(group = "OSM") |>
+      addProviderTiles("CartoDB.Voyager", group = "Simplified") |>
+      addProviderTiles("Esri.WorldTopoMap", group = "Topographic") |>
+      addHeatmap(
+        group = "Heatmap", lat = ~lat, lng = ~lon,
+        max = 0.95, blur = 30, radius = 20
+      ) |>
+      addAwesomeMarkers(
+        group = "Points", lat = ~lat, lng = ~lon,
+        clusterOptions = markerClusterOptions(),
+        popup = ~paste(
+          "<h4><strong>", name, " (", AID, ")</strong></h4>",
+          "<hr/>",
+          "Type: ", animalType, " - ", breed, "<br/>",
+          "Age: ", inAge, "<br/>",
+          "Intake Datetime: ", inDateTime, "<br/>",
+          "Intake Type: ", inType, "<br/>",
+          "Intake Condition: ", inCond, "<br/>"
+        )
+      ) |>
+      addLayersControl(
+        baseGroups = c("OSM", "Simplified", "Topographic"),
+        overlayGroups = c("Heatmap", "Points")
+      ) |>
+      addMiniMap(toggleDisplay = TRUE) |>
       setView(lat = 30.26, lng = -97.745, zoom = 11)
   })
 
