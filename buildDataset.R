@@ -107,12 +107,6 @@ conv_age <- function(ages) {
   return(ages)
 }
 
-# add lat/lon (must run geocoding section below + .py script first)
-geocoded <- read.csv("dat/geocoded_addrs.csv")[-1, ]
-fill_inc <- rep(-1, nrow(aac_dataset) - length(geocoded$lat))
-aac_dataset$lat <- c(geocoded$lat, fill_inc)
-aac_dataset$lon <- c(geocoded$lon, fill_inc)
-
 # perform all modifications on primary dataset
 aac_dataset <- aac_dataset |>
   group_by(AID) |>
@@ -122,6 +116,12 @@ aac_dataset <- aac_dataset |>
   arrange(AID) |> # sort after having added duplicates to bottom of dataframe
   mutate(across(c(inAge, outAge), conv_age)) |> # convert ages to decimal format
   filter(inAge != -1 & outAge != -1) # remove invalidated entries
+
+# add lat/lon (must run geocoding section below + .py script first)
+geocoded <- read.csv("dat/geocoded_addrs.csv")[-1, ]
+fill_inc <- rep(-1, nrow(aac_dataset) - length(geocoded$lat))
+aac_dataset$lat <- c(geocoded$lat, fill_inc)
+aac_dataset$lon <- c(geocoded$lon, fill_inc)
 
 save(aac_dataset, file = "dat/aac_dataset.rda")
 
