@@ -3,6 +3,7 @@ library(dplyr)
 library(DT) # data explorer
 library(ggplot2) # visualizations
 library(leaflet) # interactive map
+library(leaflet.extras)
 library(lubridate)
 library(shiny)
 
@@ -112,7 +113,30 @@ ui <- navbarPage(
   ),
 
   tabPanel(
-    title = "Interactive Map"
+    title = "Interactive Map",
+
+    tags$style(
+      "
+      #controls {
+        background-color: #FFFFFF;
+        padding: 20px;
+        opacity: 0.65;
+        transition: opacity 250ms 500ms;
+      }
+      #controls:hover {
+        opacity: 0.9;
+      }
+      "
+    ),
+
+    leafletOutput("map", width = "100%", height = "93vh"),
+    absolutePanel(
+      id = "controls", class = "panel panel-default", fixed = TRUE,
+      draggable = TRUE, top = 106, left = "auto", right = 50,
+      bottom = "auto", width = "auto", height = "auto",
+
+      h2("Map Options"), 
+    )
   ),
 
   tabPanel(
