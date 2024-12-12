@@ -247,7 +247,23 @@ ui <- navbarPage(
   ),
 
   tabPanel(
-    title = "Models"
+    title = "Models",
+
+    tags$style(
+      "
+      .model-outer {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        margin: auto;
+      }
+      "
+    ),
+
+    div(
+      class = "model-outer",
+      h1("- work in progress -")
+    )
   ),
 
   tabPanel(
