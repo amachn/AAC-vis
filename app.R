@@ -10,8 +10,9 @@ load("dat/aac_dataset.rda")
 
 default_theme <- theme(
   plot.background = element_rect(fill = "grey", color = "black"),
-  axis.text = element_text(size = 16, color = "white"),
-  axis.title = element_text(size = 20, face = "bold")
+  plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+  axis.title = element_text(size = 16),
+  axis.text = element_text(size = 12)
 )
 
 aac_dataset_full <- aac_dataset
