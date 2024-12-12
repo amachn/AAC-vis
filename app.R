@@ -28,13 +28,21 @@ toggle <- function(switch) {
 }
 
 get_plot <- function(input) {
+  if (is.null(input$plotName)) return(ggplot() + default_theme)
+  
   switch(
     input$plotName,
-    # - line -
 
-    # - scatter -
+    "X over Time" = {
+      filtered <- aac_dataset |>
+        filter(
+          inDateTime >= ymd(input$xTimeRange[1]) &
+            inDateTime <= ymd(input$xTimeRange[2])
+        )
 
-    # - bar -
+      ggplot() + default_theme # TEMP
+    },
+
     "Most Common Names" = {
       name_tbl <- head(
         sort(table(aac_dataset$name), decreasing = TRUE),
@@ -50,9 +58,46 @@ get_plot <- function(input) {
         geom_col()
     },
 
-    # - pie -
+    "Most Common Colors" = {
+      color_tbl <- head(
+        sort(table(aac_dataset$color), decreasing = TRUE),
+        input$colorCount
+      )
 
-    # - box -
+      color_tbl |>
+        as.data.frame() |>
+        setNames(c("Color", "Count")) |>
+        ggplot(aes(Color, Count)) +
+        ggtitle("Most Common Colors") +
+        default_theme +
+        geom_col()
+    },
+
+    "Animal Types over Time Range" = {
+      filtered <- aac_dataset |>
+        filter(
+          inDateTime >= ymd(input$pieTimeRange[1]) &
+            inDateTime <= ymd(input$pieTimeRange[2])
+        )
+
+      type_tbl <- sort(table(filtered$animalType), decreasing = TRUE)
+
+      custom_theme <- theme(
+        plot.background = element_rect(fill = "grey", color = "black"),
+        plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+        axis.text = element_text(size = 12)
+      )
+
+      type_tbl |>
+        as.data.frame() |>
+        setNames(c("Type", "Amount")) |>
+        ggplot(aes(x = "", y = Amount, fill = Type)) +
+        theme_void() +
+        ggtitle("Animal Types over Time Range") +
+        custom_theme +
+        geom_bar(stat = "identity", width = 1) +
+        coord_polar("y", start = 0)
+    },
 
     # - default -
     ggplot() +
@@ -144,19 +189,14 @@ ui <- navbarPage(
     fluidRow(
       column(3,
         wellPanel(
-          h3("Plot Type"),
+          h3("Select a Plot"),
           radioButtons(
-            "plotType", "Plot Type",
-            choices = c("Line", "Scatter", "Bar", "Pie", "Box"),
+            "plotName", "Options:",
+            choices = c(
+              "X over Time", "Most Common Names",
+              "Most Common Colors", "Animal Types over Time Range"
+            ),
             selected = character(0)
-          ),
-          conditionalPanel(
-            "input.plotType",
-            selectInput(
-              "plotName", "Select Plot",
-              choices = NULL,
-              selected = character(0)
-            )
           )
         ),
         conditionalPanel(
@@ -164,10 +204,37 @@ ui <- navbarPage(
           wellPanel(
             h3("Plot Options"),
             conditionalPanel(
+              "input.plotName == 'X over Time'",
+              dateRangeInput(
+                "xTimeRange", "Time Range to Measure",
+                start = min(aac_dataset$inDateTime),
+                min = min(aac_dataset$inDateTime),
+                end = max(aac_dataset$inDateTime),
+                max = max(aac_dataset$inDateTime)
+              )
+            ),
+            conditionalPanel(
               "input.plotName == 'Most Common Names'",
               sliderInput(
                 "nameCount", "How many names should be charted?",
                 min = 3, max = 25, value = 10
+              )
+            ),
+            conditionalPanel(
+              "input.plotName == 'Most Common Colors'",
+              sliderInput(
+                "colorCount", "How many colors should be charted?",
+                min = 3, max = 25, value = 10
+              )
+            ),
+            conditionalPanel(
+              "input.plotName == 'Animal Types over Time Range'",
+              dateRangeInput(
+                "pieTimeRange", "Time Range to Measure",
+                start = min(aac_dataset$inDateTime),
+                min = min(aac_dataset$inDateTime),
+                end = max(aac_dataset$inDateTime),
+                max = max(aac_dataset$inDateTime)
               )
             )
           )
@@ -231,24 +298,13 @@ server <- function(input, output, session) {
     )
 
   # - interactive map -
-
-  # - visualizations -
-  observe({
-    plots <- if (is.null(input$plotType)) character(0) else switch(
-      input$plotType,
-      "Line" = c("X over Time", "placeholder"),
-      "Scatter" = c("placeholder"),
-      "Bar" = c("Most Common Names", "placeholder"),
-      "Pie" = c("placeholder"),
-      "Box" = c("placeholder")
-    )
-
-    updateSelectInput(
-      session, inputId = "plotName",
-      choices = plots, selected = character(0)
-    )
+  output$map <- renderLeaflet({
+    leaflet() |>
+      addTiles() |>
+      setView(lat = 30.26, lng = -97.745, zoom = 11)
   })
 
+  # - visualizations -
   output$plot <- renderPlot({
     get_plot(input)
   })
