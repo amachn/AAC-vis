@@ -33,14 +33,33 @@ get_plot <- function(input) {
   switch(
     input$plotName,
 
-    "X over Time" = {
+    "Intake over Time" = {
       filtered <- aac_dataset |>
         filter(
           inDateTime >= ymd(input$xTimeRange[1]) &
             inDateTime <= ymd(input$xTimeRange[2])
         )
 
-      ggplot() + default_theme # TEMP
+      in_tbl <- table(as.Date(filtered$inDateTime)) |>
+        as.data.frame() |>
+        setNames(c("inDateTime", "Count")) |>
+        mutate(inDateTime = as.Date(inDateTime))
+
+      if (input$xTimeFrame == "Weekly") {
+        in_tbl <- in_tbl |>
+          mutate(inDateTime = week(inDateTime) + (
+            52 * (year(inDateTime) - year(ymd(input$xTimeRange[1])))
+          )) |>
+          aggregate(Count ~ inDateTime, sum) |>
+          mutate(inDateTime = ymd(input$xTimeRange[1]) + (7 * inDateTime - 1))
+      }
+
+      in_tbl |>
+        ggplot(aes(inDateTime, Count, group = 1)) +
+        ggtitle("Intake Count over Time") +
+        default_theme +
+        geom_line() +
+        scale_x_date(breaks = scales::pretty_breaks(n = 10))
     },
 
     "Most Common Names" = {
@@ -193,7 +212,7 @@ ui <- navbarPage(
           radioButtons(
             "plotName", "Options:",
             choices = c(
-              "X over Time", "Most Common Names",
+              "Intake over Time", "Most Common Names",
               "Most Common Colors", "Animal Types over Time Range"
             ),
             selected = character(0)
@@ -204,13 +223,17 @@ ui <- navbarPage(
           wellPanel(
             h3("Plot Options"),
             conditionalPanel(
-              "input.plotName == 'X over Time'",
+              "input.plotName == 'Intake over Time'",
               dateRangeInput(
                 "xTimeRange", "Time Range to Measure",
                 start = min(aac_dataset$inDateTime),
                 min = min(aac_dataset$inDateTime),
                 end = max(aac_dataset$inDateTime),
                 max = max(aac_dataset$inDateTime)
+              ),
+              radioButtons(
+                "xTimeFrame", "Time Frame",
+                choices = c("Daily", "Weekly")
               )
             ),
             conditionalPanel(
