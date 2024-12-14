@@ -1,0 +1,51 @@
+---
+title: "The Problem of Animal Overcrowding in Austin"
+author: "Addison Machann"
+date: "2024-12-10"
+output: pdf_document
+---
+
+### Abstract
+
+|     Throughout the United States, animal shelters are constantly facing the critical problem of overcrowding in an already crowded kennel situation. One such example of a place this problem continually effects lies in the Austin Animal Center, the municipal animal shelter which serves the city of Austin, Texas. This shelter, despite maintaining one of the best no-kill statuses in the country, is constantly operating beyond its means as a result of the extreme surplus of stray and surrendered animals. These strays tend to come from puppy mills and breeding rings that breed them for money, but end up operating out of their own means and eventually resort to abandonment. The remainder that aren't escape artists generally come from abusive and neglectful households that simply no longer wanted them. This problem is devastating to cities around the country as it causes a high rate of stray dogs and cats getting sick, attacked, injured, or perhaps most upsetting, euthanized by shelters. 
+|     Based on the data collected in this report, dogs tend to make up the bulk of the overcrowding problem, however cats tend to follow shortly behind. On average, roughly 150 animals are taken in each week at the shelter into a facility that only contains 252 dog kennels, and a smaller number of cat kennels, indicating the shelter likely won't be able to keep up forever without additional extreme measures. Despite a noticeable drop in intake numbers from 2019-2020, the problem is still significant and the shelter is now struggling to the point of recently being forced to close intakes and consider abandoning their goal of maintaining a 95%+ no-kill rate [^1]. As a result, people that have a legitimate reason for surrendering their animal are being turned away and more animals are at risk of euthanasia in Austin than have been in recent memory. After analyzing the data, it is clear that some improvements to the situation may exist, such as increasing the amount of animal care assistance provided to certain regions of Austin that are indicated to be hotspots. Some seasonal approaches may be taken as well, such as increasing animal care awareness in the summer months, which is when intakes tend to peak.
+
+### Introduction
+
+|     The data utilized in the creation of this report comes from the City of Austin Open Data Portal[^2], which holds information and data metrics publicized by the local City of Austin government. Two such datasets were obtained from this portal and utilized, namely the Austin Animal Center Intakes[^3] and Outcomes[^4] sets. These datasets come directly from the shelter's internal management and provide info on each individual intaken and outtaken from the shelter on a daily basis. 
+|     The datasets used were obtained on October 14th, 2024, and contain 167,913 intake entries and 167,844 outcome entries. Each dataset contains 12 columns, which include overlapping columns such as animal ID, name, and animal type, but contain unique columns such as intake type vs outcome type and intake condition vs outcome subtype. These unique features can be used to draw trends and patterns from the shelter and potentially provide an insight into how the shelter operates on a regular basis, and what things may be able to be improved. My interest in this data springs from my own experiences working at the Humane Society of Central Texas, and experiencing first hand the tough calls that have to be made on intakes, outcomes, and euthanasia decisions, medically or behaviorally influenced or not. This dataset gives me the opportunity to view how a much larger operation is able to consistently stay afloat while constantly battling struggles.
+
+### Data Cleaning
+
+|     In order to create a cohesive dataset that could be easily analyzed, visualized, and utilized to trace an animal's history, the two datasets were merged together by the animal ID column, something that is unique to each animal that passes through the animal center. The columns were then pruned, renamed, and organized, and additional geocoding columns were added. Entries were then filtered to only include data from 01-01-2019 until the data retrieval date, and entries with missing animal IDs or ages were removed. As a result of the merging process, many duplicate entries existed and were subsequently filtered via a sort and keep algorithm to only include the valid entries (see L54-83 in buildDataset.R). The ages in the dataset were then converted to a numeric format, and any invalid age values were removed from the dataset. Following the primary data cleaning process, a geocoding script (see geocode.py) was run repeatedly over the course of three weeks to retrieve the latitude and longitude of the address attached to each animal ID entry. This process resulted in a dataframe containing 21 variables for all 51,361 entries, which would contain 25,101 entries once entries with invalid geocoding parameters were removed.
+
+### Exploratory Data Analysis
+
+```{r heatmap-types, echo=FALSE, fig.cap="Heatmap with points of all intake locations; Pie chart of all animal types recorded", fig.align="center", fig.show="hold", out.width="49%", out.height="30%"}
+knitr::include_graphics(c("img/heatmap.png", "img/types.png"))
+```
+
+```{r names, echo=FALSE, fig.cap="bar", fig.align="center", out.width="100%", out.height="25%"}
+knitr::include_graphics("img/names.png")
+```
+
+\pagebreak
+
+### Analysis
+
+### Results
+
+### Appendix
+
+### Acknowledgements
+
+### Bibliography
+
+<!-- [^1]: Moreno-Lozano, L. (2024, July 2). More animals must leave the shelter before Austin Animal Center will accept them again . KUT News. https://www.kut.org/austin/2024-07-02/austin-animal-center-pause-intake-shelter
+-->
+
+<!-- [^2]: City of Austin Open Data Portal. (n.d.). City of Austin Open Data Portal. https://data.austintexas.gov/ -->
+
+<!-- [^3]: City of Austin Open Data Portal. (n.d.). Austin Animal Center Intakes. https://data.austintexas.gov/Health-and-Community-Services/Austin-Animal-Center-Intakes/wter-evkm -->
+
+<!-- [^4]: City of Austin Open Data Portal. (n.d.). Austin Animal Center Outcomes. https://data.austintexas.gov/Health-and-Community-Services/Austin-Animal-Center-Outcomes/9t4d-g238 -->
