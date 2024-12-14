@@ -49,9 +49,12 @@ po/*~
 rsconnect/
 
 # project specific
-*shapefiles/
 .vscode/
+
+.env
+.lintr
+dat/raw_addrs.csv
+
+*.log
 *.RData
 *.rda
-.env
-*.log
