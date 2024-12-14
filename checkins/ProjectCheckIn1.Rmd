@@ -20,8 +20,8 @@ Below you will find the template for Project Check in 1. Each group member shoul
 library(dplyr)
 library(lubridate)
 
-intakes <- read.csv("dat/Austin_Animal_Center_Intakes_20241014.csv", header=T)
-outcomes <- read.csv("dat/Austin_Animal_Center_Outcomes_20241014.csv", header=T)
+intakes <- read.csv("dat/aac_intakes.csv", header=T)
+outcomes <- read.csv("dat/aac_outcomes.csv", header=T)
 aac_dataset <- merge(intakes, outcomes, by="Animal.ID", all.x=TRUE)
 
 # here we will:

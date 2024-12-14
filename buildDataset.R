@@ -3,8 +3,8 @@ library(fields)
 library(lubridate)
 
 # - load/merge data -
-intakes <- read.csv("dat/Austin_Animal_Center_Intakes_20241014.csv")
-outcomes <- read.csv("dat/Austin_Animal_Center_Outcomes_20241014.csv")
+intakes <- read.csv("dat/aac_intakes.csv")
+outcomes <- read.csv("dat/aac_outcomes.csv")
 aac_dataset <- merge(intakes, outcomes, by = "Animal.ID", all.x = TRUE)
 
 # - data wrangling -
