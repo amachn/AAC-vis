@@ -57,6 +57,7 @@ get_plot <- function(input) {
       in_tbl |>
         ggplot(aes(inDateTime, Count, group = 1)) +
         ggtitle("Intake Count over Time") +
+        xlab("Time") +
         default_theme +
         geom_line() +
         scale_x_date(breaks = scales::pretty_breaks(n = 10))
