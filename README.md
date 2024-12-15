@@ -1,5 +1,5 @@
 # AAC-vis (Austin Animal Center Visualization)
-AAC-vis is a R-lang data analysis repository which was completed as the final project for my CSI 2300 class.
+AAC-vis is an R-lang data analysis repository which was completed as the final project for my CSI 2300 class.
 
 this project is now technically finished, however I'll be continuing beyond the final report and refining all code involved and hopefully making a smoother product as well as more connections and conclusions based on the data.
 
