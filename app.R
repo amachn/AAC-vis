@@ -29,7 +29,7 @@ toggle <- function(switch) {
 
 get_plot <- function(input) {
   if (is.null(input$plotName)) return(ggplot() + default_theme)
-  
+
   switch(
     input$plotName,
 
@@ -304,7 +304,7 @@ server <- function(input, output, session) {
       is.null(input$inType) | inType %in% input$inType,
       is.null(input$outType) | outType %in% input$outType
     )
-    
+
     if (!is.null(input$columns)) df <- df[, input$columns]
 
     return(df)
