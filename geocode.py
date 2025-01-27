@@ -300,25 +300,35 @@ class _App:
 
     # - run process -
 
-    def start_tasks(self) -> None:
+    def _start_tasks(self) -> None:
         self.reset_console()
 
-    def run_checks(self) -> ...:
-        # TODO: validate files exist and are in proper format
-        # TODO: validate API key(s) are present and valid
+    def _run_checks(self) -> ...:
+        if not self.check_file(self.in_fn):
+            pass
+
+        if not self.check_file(self.out_fn):
+            pass
+
+        if not self.valid_key:
+            self.valid_key = self.check_key(self.endpoints[self.selected])
+            pass
+
+
+
         # TODO: validate input file is not empty/has entries to geocode
         # TODO: validate selected amount of queries falls within API limit
         # TODO: validate API selected is not at 429 limit
         pass
 
-    def inner_match(self, option: int) -> str:
+    def _inner_match(self, option: int) -> str:
         ret = None
 
         match option:
             case 0:
                 ret = 0
             case 1:
-                self.run_checks()
+                self._run_checks()
                 # TODO: implement geocoding init. process
                 ret = "\ncompleted geocoder run" # TODO: add completion statistics
             case 2:
@@ -351,7 +361,7 @@ class _App:
 
         return ret + "\n"
 
-    def loop(self) -> None:
+    def _loop(self) -> None:
         out = ""
 
         while True:
@@ -365,12 +375,12 @@ class _App:
                 out = "\ninput must be a numeric value, please try again!\n"
                 continue
 
-            out = self.inner_match(option)
+            out = self._inner_match(option)
 
             if out == 0:
                 break
 
-    def close_tasks(self) -> None:
+    def _close_tasks(self) -> None:
         pass # TODO: logging, cleanup, etc.
 
     def run(self) -> bool:
@@ -384,14 +394,14 @@ class _App:
             flag for whether the geocoder was successfully run
         """
         try:
-            self.start_tasks()
-            self.loop()
-            self.close_tasks()
+            self._start_tasks()
+            self._loop()
+            self._close_tasks()
         except Exception as e:
             # TODO: log error here
             return False
-        else:
-            return True
+
+        return True
 
 # run requirements:
 # 1. valid API key for utilized geocoding service
