@@ -108,7 +108,8 @@ class _App:
 
         Returns
         -------
-        
+        dict[str, Endpoint]
+            dictionary with all endpoint configs
         """
         return {
             "mapbox": Endpoint(
@@ -127,10 +128,27 @@ class _App:
 
     @staticmethod
     def reset_console() -> None:
+        """
+        Clears the console and outputs top line text
+        """
         system("cls" if name == "nt" else "clear")
         print("geocoder\n--------")
 
     def check_key(self, endpoint: Endpoint) -> bool:
+        """
+        Validates the API key for the selected endpoint
+
+        Parameters
+        ----------
+        endpoint : Endpoint
+            endpoint to check the key for
+
+        Returns
+        -------
+        bool
+            flag for whether the key is valid
+
+        """
         def query_key(endpoint: Endpoint) -> bool:
             if endpoint.key is not None:
                 req = get(
@@ -152,6 +170,14 @@ class _App:
     # - console fetches -
 
     def fetch_options(self) -> str:
+        """
+        Writes the available options to the console and fetches the user's selection
+
+        Returns
+        -------
+        str
+            user's selection
+        """
         endpoint = self.endpoints[self.selected]
         valid_key = self.check_key(endpoint)
 
@@ -170,6 +196,14 @@ class _App:
         return input("select one: ")
 
     def fetch_endpoint(self) -> str:
+        """
+        Writes the available endpoints to the console and fetches the user's selection
+
+        Returns
+        -------
+        str
+            user's endpoint selection
+        """
         while True:
             print("\nAPI options:")
             for i, k in enumerate(self.endpoints):
@@ -196,6 +230,14 @@ class _App:
         return self.selected
 
     def fetch_queries(self) -> int:
+        """
+        Fetches the amount of queries to send to the selected endpoint
+
+        Returns
+        -------
+        int
+            selected amount of queries to send
+        """
         while True:
             try:
                 queries = int(input("\nenter amount of queries to send (max: 10000): "))
@@ -212,6 +254,14 @@ class _App:
         return queries
 
     def fetch_delay(self) -> float:
+        """
+        Fetches the delay between queries to send to the selected endpoint
+
+        Returns
+        -------
+        float
+            selected delay between queries
+        """
         while True:
             try:
                 delay = float(input("\nenter delay between queries (min, max: 0.5s, 15s): "))
@@ -303,6 +353,15 @@ class _App:
         pass # TODO: logging, cleanup, etc.
 
     def run(self) -> bool:
+        """
+        Top-level run method, handles all internal modification and
+        subsequently running the geocoder
+
+        Returns
+        -------
+        bool
+            flag for whether the geocoder was successfully run
+        """
         try:
             self.start_tasks()
             self.loop()
