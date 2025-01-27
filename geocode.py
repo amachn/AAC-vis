@@ -15,7 +15,8 @@ imported and utilized otherwise:
 
 from dataclasses import dataclass
 from os import getenv, system, name
-import logging
+from pathlib import Path
+# TODO: reimpl. all print stmts. w/ logging
 
 from dotenv import load_dotenv
 from requests import get
@@ -164,8 +165,28 @@ class _App:
         self.valid_key = query_key(endpoint)
         return self.valid_key
 
-    def check_file(self, fn: str) -> None:
-        pass
+    def check_file(self, fn: str) -> bool:
+        """
+        Validates the existence of the passed file name and ensures
+        the correct file type
+
+        Parameters
+        ----------
+        fn : str
+            file name to check
+
+        Returns
+        -------
+        bool
+            flag for whether the file is valid
+        """
+        file = Path(fn)
+
+        if file.is_file() and file.suffix == ".csv":
+            return True
+
+        return False
+
 
     # - console fetches -
 
@@ -190,7 +211,7 @@ class _App:
         print(f"\t6) set the input file name ~ current: {self.in_fn}")
         print(f"\t7) set the output file name ~ current: {self.out_fn}")
         print("\t8) reset to default settings (includes both APIs)")
-        print("\t9) set debug level ~ current: ") # TODO: impl. w/ logging
+        print("\t9) set debug level ~ current: ")
         print("\t0) exit")
 
         return input("select one: ")
