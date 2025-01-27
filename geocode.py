@@ -1,223 +1,323 @@
-from csv import QUOTE_NONNUMERIC
-from datetime import datetime
-from dotenv import load_dotenv
-from os import getenv
-from requests import get
-from time import sleep
+"""
+Forward Geocoding Script
+
+This script is utilized to convert addresses into mappable lat/lon
+coordinates. Only .csv files are supported for input and must contain
+at least an 'address' column. The output will be saved to a new .csv
+file.
+
+This file is best run as a standalone script, but the following can be
+imported and utilized otherwise:
+
+    * Endpoint - dataclass for storing API endpoint information
+    * Geocoder - handles API communication between geo-endpoints
+"""
+
+from dataclasses import dataclass
+from os import getenv, system, name
 import logging
-import numpy as np
-import pandas as pd
-import re
+
+from dotenv import load_dotenv
+from requests import get
+
+
+@dataclass
+class Endpoint:
+    """
+    Dataclass utilized for storing information pertinent to specific endpoints
+
+    Attributes
+    ----------
+    name : str
+        name of the endpoint
+    url : str
+        API endpoint URL
+    key_query : str
+        query parameter for the API key
+    key_var : str
+        environment variable name for the API key
+    key : str, optional
+        API key for the endpoint
+    queries : int
+        number of queries allowed per day (default = 1000)
+    delay : float
+        delay between queries in seconds (default = 1.5)
+    """
+
+    name: str
+    url: str
+    key_query: str
+    key_var: str
+    key: str | None = None
+    queries: int = 1000
+    delay: float = 1.5
 
 
 class Geocoder:
-    key: str | None
-    count: int | None
-    wait: float | None
-    raw_df: pd.DataFrame
-    out_df: pd.DataFrame
+    """
+    Class which handles API communication for forward geocoding across
+    multiple potential endpoints
+
+    Attributes
+    ----------
+
+    Methods
+    -------
+
+    """
+
+
+class _App:
+    """
+    Main application class for running the geocoding process and taking
+    input that modifies the process
+
+    Attributes
+    ----------
+    endpoints : dict[str, Endpoint]
+        dictionary containing all available endpoints
+    selected : str
+        currently selected endpoint
+    in_fn : str
+        input file name
+    out_fn : str
+        output file name
+    valid_key : bool
+        flag for whether the API key for the current selected endpoint is valid
+    """
+
+    endpoints: dict[str, Endpoint]
+    selected: str
+    in_fn: str
+    out_fn: str
+
+    valid_key: bool
 
     def __init__(self) -> None:
-        load_dotenv()
-        self.key = getenv("GEOCODE_API_KEY")
+        self.endpoints = self.generate_endpoints()
+        self.selected = "maps.co"
+        self.in_fn = "dat/raw_addrs.csv"
+        self.out_fn = "dat/geocoded_addrs.csv"
 
-        self.count = None
-        self.wait = None
-
-        self.raw_df = pd.read_csv("dat/raw_addrs.csv")
-        self.out_df = pd.read_csv("dat/geocoded_addrs.csv")
+    # - internals -
 
     @staticmethod
-    def _get_var( 
-        prompt: str, 
-        default: float, 
-        vRange: range | np.ndarray,
-        exc_msg: str
-    ) -> float:
-        var = None
+    def generate_endpoints() -> dict[str, Endpoint]:
+        """
+        Generates the available endpoint configs
 
-        while not isinstance(var, float) or var not in vRange:
-            var = input(prompt)
+        Returns
+        -------
+        
+        """
+        return {
+            "mapbox": Endpoint(
+                "mapbox",
+                "https://api.mapbox.com/search/geocode/v6/forward",
+                "access_token",
+                "MAPBOX_KEY"
+            ),
+            "maps.co": Endpoint(
+                "maps.co",
+                "https://geocode.maps.co/search",
+                "api_key",
+                "MAPS_KEY"
+            )
+        }
+
+    @staticmethod
+    def reset_console() -> None:
+        system("cls" if name == "nt" else "clear")
+        print("geocoder\n--------")
+
+    def check_key(self, endpoint: Endpoint) -> bool:
+        def query_key(endpoint: Endpoint) -> bool:
+            if endpoint.key is not None:
+                req = get(
+                    f"{endpoint.url}?{endpoint.key_query}={endpoint.key}&q=Austin+TX", timeout=5
+                )
+                if req.status_code == 200:
+                    return True
+
+            return False
+
+        load_dotenv()
+        endpoint.key = getenv(endpoint.key_var)
+        self.valid_key = query_key(endpoint)
+        return self.valid_key
+
+    def check_file(self, fn: str) -> None:
+        pass
+
+    # - console fetches -
+
+    def fetch_options(self) -> str:
+        endpoint = self.endpoints[self.selected]
+        valid_key = self.check_key(endpoint)
+
+        print("\noptions:")
+        print("\t1) run the geocoder")
+        print(f"\t2) set the API to use ~ current: {endpoint.name}")
+        print(f"\t3) set the amount of queries to send ~ current: {endpoint.queries}")
+        print(f"\t4) set the delay between each query ~ current: {endpoint.delay}")
+        print(f"\t5) refresh API key variable ~ current: {'valid' if valid_key else 'invalid'}")
+        print(f"\t6) set the input file name ~ current: {self.in_fn}")
+        print(f"\t7) set the output file name ~ current: {self.out_fn}")
+        print("\t8) reset to default settings (includes both APIs)")
+        print("\t9) set debug level ~ current: ") # TODO: impl. w/ logging
+        print("\t0) exit")
+
+        return input("select one: ")
+
+    def fetch_endpoint(self) -> str:
+        while True:
+            print("\nAPI options:")
+            for i, k in enumerate(self.endpoints):
+                print(f"\t{i + 1}) {k}{' (current)' if k == self.selected else ''}")
+            print("\t0) exit")
+
+            selected = input("select one: ")
 
             try:
-                if var in ['', ' ']:
-                    var = default
-                else:
-                    var = float(var)
+                selected = int(selected)
             except ValueError:
-                var = None
-                print(exc_msg)
-            else:
-                print(exc_msg) if var not in vRange else None
+                print("\ninput must be a numeric value, please try again!")
+                continue
 
-        return var
+            if selected == 0:
+                break
 
-    def _run_startup_tasks(self) -> None:
-        self.count = int(
-            self._get_var(
-                "How many addresses should be geocoded [default = 1000/day, max = 5000/day]? ", 1000.0,
-                range(1, 5001), "Please enter a number between 1 and 5000."
-            )
-        )
+            if selected in range(1, len(self.endpoints) + 1):
+                self.selected = list(self.endpoints.keys())[selected - 1]
+                break
 
-        self.wait = self._get_var(
-            "How long should the script wait between requests [default=1.2s, max=30s]? ", 1.2,
-            np.linspace(1, 30, num=2901), "Please enter a number between 1 and 30."
-        )
+            print("\ninvalid option, please try again!")
 
+        return self.selected
 
-    def _check_max(self) -> bool:
-        current_date = datetime.today().strftime("%m-%d-%y")
+    def fetch_queries(self) -> int:
+        while True:
+            try:
+                queries = int(input("\nenter amount of queries to send (max: 10000): "))
+            except ValueError:
+                print("\ninput must be a numeric value, please try again!")
+                continue
 
-        with open("./run-list.log", "a+") as logfile:
-            logfile = logfile.readlines()
-        
-        queries = 0
-        for line in logfile:
-            if current_date in line:
-                queries += int(re.search("\\d{1,}", line).group(0))
+            if queries in range(1, 10001):
+                self.endpoints[self.selected].queries = queries
+                break
 
-        if queries >= 5000:
+            print("\ninvalid amount, please try again!")
+
+        return queries
+
+    def fetch_delay(self) -> float:
+        while True:
+            try:
+                delay = float(input("\nenter delay between queries (min, max: 0.5s, 15s): "))
+            except ValueError:
+                print("\ninput must be a numeric value, please try again!")
+                continue
+
+            if delay >= 0.5 and delay <= 15:
+                self.endpoints[self.selected].delay = delay
+                break
+
+            print("\ninvalid delay, please try again!")
+
+        return delay
+
+    # - run process -
+
+    def start_tasks(self) -> None:
+        self.reset_console()
+
+    def run_checks(self) -> ...:
+        # TODO: validate files exist and are in proper format
+        # TODO: validate API key(s) are present and valid
+        # TODO: validate input file is not empty/has entries to geocode
+        # TODO: validate selected amount of queries falls within API limit
+        # TODO: validate API selected is not at 429 limit
+        pass
+
+    def inner_match(self, option: int) -> str:
+        ret = None
+
+        match option:
+            case 0:
+                ret = 0
+            case 1:
+                self.run_checks()
+                # TODO: implement geocoding init. process
+                ret = "\ncompleted geocoder run" # TODO: add completion statistics
+            case 2:
+                val = self.fetch_endpoint()
+                ret = f"\nselected endpoint: {val}"
+            case 3:
+                val = self.fetch_queries()
+                ret = f"\nendpoint queries set to: {val}"
+            case 4:
+                val = self.fetch_delay()
+                ret = f"\nendpoint delay set to: {val}"
+            case 5:
+                val = self.check_key(self.endpoints[self.selected])
+                ret = f"\nAPI key refreshed: {'valid' if val else 'invalid'}"
+            case 6:
+                self.in_fn = input("\nenter input file name: ")
+                ret = f"\ninput file set to: {self.in_fn}"
+            case 7:
+                self.out_fn = input("\nenter output file name: ")
+                ret = f"\noutput file set to: {self.out_fn}"
+            case 8:
+                self.endpoints = self.generate_endpoints()
+                self.in_fn = "dat/raw_addrs.csv"
+                self.out_fn = "dat/geocoded_addrs.csv"
+                ret = "\nendpoint configs regenerated and files reset."
+            case 9:
+                pass # TODO: update debug level here
+            case _:
+                ret = "\ninvalid option, please try again!"
+
+        return ret + "\n"
+
+    def loop(self) -> None:
+        out = ""
+
+        while True:
+            self.reset_console()
+
+            print(out, end="")
+
+            try:
+                option = int(self.fetch_options())
+            except ValueError:
+                out = "\ninput must be a numeric value, please try again!\n"
+                continue
+
+            out = self.inner_match(option)
+
+            if out == 0:
+                break
+
+    def close_tasks(self) -> None:
+        pass # TODO: logging, cleanup, etc.
+
+    def run(self) -> bool:
+        try:
+            self.start_tasks()
+            self.loop()
+            self.close_tasks()
+        except Exception as e:
+            # TODO: log error here
             return False
         else:
             return True
 
-    def _log_run(self, count: int) -> None:
-        logging.basicConfig(
-            filename="./run-list.log", filemode='a',
-            format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
-            datefmt="%m-%d-%Y", level=logging.INFO
-        )
-        logging.info(f"Running {count} queries.")   
-
-    def _geocode(self, address: str) -> tuple[float, float] | int:
-        req = get(f"https://geocode.maps.co/search?q={address}&api_key={self.key}")
-
-        if req.status_code == 401: # missing API key in /.env
-            print("No API key found!")
-            return -1
-
-        if req.status_code == 429: # request limit hit
-            print(f"Request limit exceeded! Prematurely terminating script @ idx {idx}")
-            return -1
-
-        if len(req.json()) != 0: # successful query for coordinates
-            data = req.json()[0]
-            return (
-                round(float(data['lat']), 6), 
-                round(float(data['lon']), 6)
-            )
-        else: # if len is 0, then the request was bad and yielded no coordinates
-            return (-1, -1)
-
-    def run(self) -> None:
-        if not self._check_max():
-            print("Daily query limit reached!")
-            return
-
-        self._run_startup_tasks()
-        self._log_run(self.count)
-
-        start_idx = int(self.out_df.tail(1)["idx"].values[0]) + 1 
-        end_idx = start_idx + self.count
-        new_rows = [] 
-
-        for idx in range(start_idx, end_idx):
-            row = self.raw_df.query("idx == @idx") # find row with matching idx
-            base_addr = row["address"].values[0]
-
-            if base_addr != "Outside Jurisdiction" and re.match("\\d", base_addr):
-                # regexes to format addr for GET request
-                addr = re.sub("[()]", "", base_addr)
-                addr = re.sub("\\Win\\W", " ", addr)
-                addr = re.sub("\\W", "+", addr)
-                coords = self._geocode(addr)
-            else:
-                coords = (-1, -1)
-
-            print(f"{(idx)}/{end_idx-1} ({idx-start_idx+1}) | {row['AID'].values[0]} - {coords}")
-
-            if coords == -1:
-                break
-
-            vals: list[int | str] = row.values[0].tolist()
-            vals.extend(coords)            
-
-            new_rows.append(vals)
-
-            sleep(self.wait) # avoid hitting API ratelimit of 1req/s
-
-        df_extension = pd.DataFrame(new_rows, columns=self.out_df.columns)
-        df_extension.to_csv("dat/geocoded_addrs.csv", mode='a',
-                            index=False, header=False,
-                            quoting=QUOTE_NONNUMERIC)
-
-
-class App:
-    _queries: int
-    _delay: float
-    _key: str | None
-    geocoder: Geocoder | None
-
-    def __init__(self) -> None:
-        self._queries = 1000
-        self._delay = 1.2
-        self._key = self._check_key()
-        self.geocoder = None
-
-    @staticmethod
-    def _check_key() -> str | None:
-        load_dotenv()
-        key = getenv("GEOCODE_API_KEY")
-        req = get(f"https://geocode.maps.co/search?q=Austin+TX&api_key={key}")
-
-        if req.status_code == 200:
-            return getenv("GEOCODE_API_KEY")
-        else:
-            return None
-
-    def _fetch_option(self) -> str:
-        print("options:")
-        print("\t1) run the geocoder")
-        print(f"\t2) set the amount of queries to send ~ current: {self.queries}")
-        print(f"\t3) set the delay between each query ~ current: {self.delay}")
-        print(f"\t4) refresh API key variable ~ current: {'valid' if self._key else 'invalid'}")
-        print("\t0) exit")
-        return input("select one: ")
-
-    def _fetch(self) -> ...:
-        pass
-
-    def run(self) -> ...:
-        exit_cond = False
-        print("geocoder\n--------\n")
-        while not exit_cond:
-            try:
-                opt = int(self._fetch_option())
-            except ValueError:
-                print("input must be a numeric value, please try again!")
-                continue
-
-            match opt:
-                case 0:
-                    pass
-                case 1:
-                    pass
-                case 2:
-                    pass
-                case 3:
-                    pass
-                case 4:
-                    pass
-                case _:
-                    pass
-
-
-# TO RUN THIS SCRIPT:
-# 1. must have a valid API key from geocode.maps.co
-#   - API key must also be placed in a .env file located at ./
-# 2. buildDataset.R must be run to generate .csv files       
+# run requirements:
+# 1. valid API key for utilized geocoding service
+#     - store in .env file located at ./
+#     - use MAPS_KEY for maps.co, or MAPBOX_KEY for mapbox
+# 2. buildDataset.R has to have been run to generate the required .csv files
 
 if __name__ == "__main__":
-    geocoder = Geocoder()
-    geocoder.run()
+    _App().run()
