@@ -33,6 +33,8 @@ class Endpoint:
         name of the endpoint
     url : str
         API endpoint URL
+    max_queries : int
+        maximum number of queries allowed per day
     key_query : str
         query parameter for the API key
     key_var : str
@@ -47,6 +49,7 @@ class Endpoint:
 
     name: str
     url: str
+    max_queries: int
     key_query: str
     key_var: str
     key: str | None = None
@@ -116,12 +119,14 @@ class _App:
             "mapbox": Endpoint(
                 "mapbox",
                 "https://api.mapbox.com/search/geocode/v6/forward",
+                10000, # this is a subjective limit, technically we can do 100,000 for no cost
                 "access_token",
                 "MAPBOX_KEY"
             ),
             "maps.co": Endpoint(
                 "maps.co",
                 "https://geocode.maps.co/search",
+                5000,
                 "api_key",
                 "MAPS_KEY"
             )
