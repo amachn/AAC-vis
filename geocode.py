@@ -308,20 +308,24 @@ class _App:
     def _start_tasks(self) -> None:
         self.reset_console()
 
-    def _run_checks(self) -> ...:
+    def _run_checks(self) -> bool:
         if not self.check_file(self.in_fn):
-            pass
+            print("\ninvalid input file, please try again!")
+            return False
 
         if not self.check_file(self.out_fn):
-            pass
+            print("\ninvalid output file, please try again!")
+            return False
 
         if not self.valid_key:
             self.valid_key = self.check_key(self.endpoints[self.selected])
-            pass
-
-
+            if not self.valid_key:
+                print("\nno valid API key found!")
+                return False
 
         # TODO: validate input file is not empty/has entries to geocode
+        
+
         # TODO: validate selected amount of queries falls within API limit
         # TODO: validate API selected is not at 429 limit
         pass
