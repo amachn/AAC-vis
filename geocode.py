@@ -12,6 +12,7 @@ imported and utilized otherwise:
     * Endpoint - dataclass for storing API endpoint information
     * Logger - handles all event logging and output to console/file
     * Geocoder - handles API communication between geo-endpoints
+    * App - top-level class for running the geocoding process and handling I/O
 """
 
 from dataclasses import dataclass
@@ -118,7 +119,7 @@ class Geocoder:
     """
 
 
-class _App:
+class App:
     """
     Main application class for running the geocoding process and taking
     input that modifies the process
@@ -143,15 +144,15 @@ class _App:
     selected: str
     in_fn: str
     out_fn: str
-
     valid_key: bool
     logger: Logger
 
     def __init__(self) -> None:
         self.endpoints = self.generate_endpoints()
         self.selected = "maps.co"
-        self.in_fn = "dat/raw_addrs.csv"
-        self.out_fn = "dat/geocoded_addrs.csv"
+        self.in_fn = "dat/raw_addresses.csv"
+        self.out_fn = "dat/geocoded_addresses.csv"
+        self.valid_key = False
         self.logger = Logger()
 
     # - internals -
@@ -375,7 +376,6 @@ class _App:
                 return False
 
         # TODO: validate input file is not empty/has entries to geocode
-        
 
         # TODO: validate selected amount of queries falls within API limit
         # TODO: validate API selected is not at 429 limit
@@ -411,8 +411,8 @@ class _App:
                 ret = f"\noutput file set to: {self.out_fn}"
             case 8:
                 self.endpoints = self.generate_endpoints()
-                self.in_fn = "dat/raw_addrs.csv"
-                self.out_fn = "dat/geocoded_addrs.csv"
+                self.in_fn = "dat/raw_addresses.csv"
+                self.out_fn = "dat/geocoded_addresses.csv"
                 ret = "\nendpoint configs regenerated and files reset."
             case 9:
                 pass # TODO: update debug level here
@@ -470,4 +470,4 @@ class _App:
 # 2. buildDataset.R has to have been run to generate the required .csv files
 
 if __name__ == "__main__":
-    _App().run()
+    App().run()
