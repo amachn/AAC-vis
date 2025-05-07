@@ -118,7 +118,7 @@ aac_dataset <- aac_dataset |>
   filter(inAge != -1 & outAge != -1) # remove invalidated entries
 
 # add lat/lon (must run geocoding section below + .py script first)
-geocoded <- read.csv("dat/geocoded_addrs.csv")[-1, ]
+geocoded <- read.csv("dat/geocoded_addresses.csv")[-1, ]
 fill_inc <- rep(-1, nrow(aac_dataset) - length(geocoded$lat))
 aac_dataset$lat <- c(geocoded$lat, fill_inc)
 aac_dataset$lon <- c(geocoded$lon, fill_inc)
@@ -128,18 +128,18 @@ save(aac_dataset, file = "dat/aac_dataset.rda")
 # - geocoding -
 
 # create data subset for geocoding, if it doesn't already exist
-if (!file.exists("dat/raw_addrs.csv")) {
+if (!file.exists("dat/raw_addresses.csv")) {
   geo_subset <- aac_dataset %>%
     mutate(idx = row_number()) %>%
     select(idx, AID, address)
-  write.csv(geo_subset, "dat/raw_addrs.csv", row.names = FALSE)
+  write.csv(geo_subset, "dat/raw_addresses.csv", row.names = FALSE)
 }
 
 # create csv file for geocoded results, if it doesn't already exist
-if (!file.exists("dat/geocoded_addrs.csv")) {
+if (!file.exists("dat/geocoded_addresses.csv")) {
   base_df <- data.frame(
     idx = 0, AID = 0, address = "AAC",
     lat = 30.2521117, lon = -97.6872072
   )
-  write.csv(base_df, "dat/geocoded_addrs.csv", row.names = FALSE)
+  write.csv(base_df, "dat/geocoded_addresses.csv", row.names = FALSE)
 }
