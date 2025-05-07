@@ -10,13 +10,15 @@ This file is best run as a standalone script, but the following can be
 imported and utilized otherwise:
 
     * Endpoint - dataclass for storing API endpoint information
+    * Logger - handles all event logging and output to console/file
     * Geocoder - handles API communication between geo-endpoints
 """
 
 from dataclasses import dataclass
 from os import getenv, system, name
 from pathlib import Path
-# TODO: reimpl. all print stmts. w/ logging
+from sys import stdout
+import logging
 
 from dotenv import load_dotenv
 from requests import get
@@ -57,6 +59,51 @@ class Endpoint:
     delay: float = 1.5
 
 
+class Logger:
+    """
+    Class which handles all logging and output to console/file
+
+    Attributes
+    ----------
+    root : logging.Logger
+        root logger for all events
+    stream : logging.StreamHandler
+        stream handler for console output
+    file : logging.FileHandler
+        file handler for file output
+    """
+
+    def __init__(self) -> None:
+        root = logging.getLogger(__name__)
+        root.setLevel(logging.DEBUG)
+
+        streamCh = logging.StreamHandler(stdout)
+        streamFmt = logging.Formatter("%(levelname)s -> %(message)s")
+        streamCh.setLevel(logging.INFO)
+        streamCh.setFormatter(streamFmt)
+        root.addHandler(streamCh)
+        self.stream = streamCh
+
+        fileCh = logging.FileHandler("geocoder.log")
+        fileFmt = logging.Formatter("%(asctime)s | %(levelname)s | L%(lineno)d | %(message)s",
+                                    datefmt="%m-%d-%Y %H:%M:%S")
+        fileCh.setLevel(logging.DEBUG)
+        fileCh.setFormatter(fileFmt)
+        root.addHandler(fileCh)
+        self.file = fileCh
+
+        self.root = root
+
+    def __getattr__(self, name):
+        try:
+            return getattr(super(), name)
+        except AttributeError:
+            try:
+                return getattr(self.root, name)
+            except AttributeError:
+                pass
+
+
 class Geocoder:
     """
     Class which handles API communication for forward geocoding across
@@ -88,6 +135,8 @@ class _App:
         output file name
     valid_key : bool
         flag for whether the API key for the current selected endpoint is valid
+    logger : Logger
+        logger class for all information output
     """
 
     endpoints: dict[str, Endpoint]
@@ -96,12 +145,14 @@ class _App:
     out_fn: str
 
     valid_key: bool
+    logger: Logger
 
     def __init__(self) -> None:
         self.endpoints = self.generate_endpoints()
         self.selected = "maps.co"
         self.in_fn = "dat/raw_addrs.csv"
         self.out_fn = "dat/geocoded_addrs.csv"
+        self.logger = Logger()
 
     # - internals -
 
@@ -216,7 +267,7 @@ class _App:
         print(f"\t6) set the input file name ~ current: {self.in_fn}")
         print(f"\t7) set the output file name ~ current: {self.out_fn}")
         print("\t8) reset to default settings (includes both APIs)")
-        print("\t9) set debug level ~ current: ")
+        print(f"\t9) set logging level ~ current: {logging.getLevelName(self.logger.stream.level)}")
         print("\t0) exit")
 
         return input("select one: ")
