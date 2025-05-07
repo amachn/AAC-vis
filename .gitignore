@@ -53,10 +53,10 @@ rsconnect/
 
 .env
 .lintr
-dat/raw_addrs.csv
 
 *.log
 *.mp4
 *.RData
 *.rda
 *~$*.pptx
+checkins/
